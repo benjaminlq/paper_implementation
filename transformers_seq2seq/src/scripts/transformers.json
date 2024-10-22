@@ -1,0 +1,20 @@
+{
+    "model_args": {
+        "n": 6,
+        "h": 8,
+        "d_model": 512,
+        "share_embeddings": false,
+        "max_tokens": 4096
+    },
+
+    "train_args": {
+        "batch_size": 32,
+        "epoch_nos": 20,
+        "test_split": 0.2,
+        "warm_up": 4000,
+        "lr": 1,
+        "betas": [0.9, 0.98],
+        "eps": 1e-9,
+        "accumulation_no": 1
+    }
+}
