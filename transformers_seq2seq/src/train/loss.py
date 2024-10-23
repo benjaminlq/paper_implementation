@@ -20,7 +20,8 @@ class CustomCrossEntropyLoss(nn.Module):
         else:
             self.criterion = nn.CrossEntropyLoss(
                 label_smoothing=label_smoothing,
-                ignore_index=0
+                ignore_index=0,
+                reduction="sum"
             )
 
     def forward(

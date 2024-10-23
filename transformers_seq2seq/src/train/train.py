@@ -39,16 +39,13 @@ def run_epoch(
         probs = model(
             src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask
         )
-
-        # loss = loss_criterion(
-        #     probs.contiguous().view(-1, en_tokenizer.vocab_size),
-        #     labels.contiguous().view(-1)
-        # ) / ntokens
         
-        loss = loss_criterion(
+        batch_loss = loss_criterion(
             probs.contiguous().view(-1, probs.size(-1)),
             labels.contiguous().view(-1)
-        ) / ntokens
+        )
+        
+        loss = batch_loss / ntokens
 
         if mode == "train":
             loss.backward()
@@ -66,7 +63,7 @@ def run_epoch(
             train_state.tokens += ntokens
 
         all_losses.append(loss.item())
-        total_loss += (loss.item() * ntokens)
+        total_loss += batch_loss.item()
         total_tokens += ntokens
 
         if i % 200 == 1 and mode == "train":
