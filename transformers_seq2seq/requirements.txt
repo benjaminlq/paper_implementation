@@ -6,3 +6,6 @@ pandas==1.5.0
 pytest
 tqdm
 fire
+evaluate
+bert_score
+rouge_score

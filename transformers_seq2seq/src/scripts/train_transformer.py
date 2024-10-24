@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 from models.transformers.model import TransformersSeqToSeq
 from config import MAIN_DIR, ARTIFACT_DIR
 from train.loss import CustomCrossEntropyLoss
-from train.train import run_epoch, TrainState, custom_lr_schedule
+from train.train import run_train_epoch, run_eval_epoch, TrainState, custom_lr_schedule
 
 def main(
     config_file: str = os.path.join(MAIN_DIR, "scripts", "transformer.json"),
@@ -55,29 +55,29 @@ def main(
     for epoch_no in range(training_args["epoch_nos"]):
         print(f"Epoch: {epoch_no}")
         model.train()
-        _, _, train_step_loss = run_epoch(
+        _, _, train_step_loss = run_train_epoch(
             data_iter = train_dataloader,
             model = model,
-            loss_compute = criterion,
+            loss_criterion = criterion,
             optimizer = optimizer,
             scheduler = scheduler,
             train_state = train_state,
+            tokenizer = en_tokenizer,
             accumulation_no = training_args["accumulation_no"],
-            mode = "train"
+            track_gradients = True
         )
         train_loss.extend(train_step_loss)
+        torch.cuda.empty_cache()
         model.eval()
-        _, _, val_step_loss = run_epoch(
+        _, val_step_loss = run_eval_epoch(
             data_iter = test_dataloader,
             model = model,
-            loss_compute = criterion,
-            optimizer = None,
-            scheduler = None,
-            train_state = train_state,
-            accumulation_no = training_args["accumulation_no"],
-            mode = "eval"
+            loss_criterion = criterion,
+            tgt_tokenizer = en_tokenizer,
+            train_state = train_state
         )
         val_loss.extend(val_step_loss)
+        torch.cuda.empty_cache()
         if early_stopping and train_state.patience_counter > patience:
             break
         
