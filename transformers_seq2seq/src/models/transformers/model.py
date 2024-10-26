@@ -17,7 +17,8 @@ class TransformersSeqToSeq(nn.Module):
         src_vocab_size: int=30000,
         tgt_vocab_size: int=30000,
         share_embeddings: bool=False,
-        max_tokens: int=4096
+        max_tokens: int=4096,
+        temperature: float = 1.0
     ):
         super(TransformersSeqToSeq, self).__init__()
         self.n, self.h, self.d_model = n, h, d_model
@@ -26,10 +27,10 @@ class TransformersSeqToSeq(nn.Module):
         self.src_embeddings = TokenEmbeddings(d_model=d_model, vocab_size=src_vocab_size)
         if share_embeddings:
             self.tgt_embeddings = self.src_embeddings
-            self.generator = Generator(d_model=d_model, vocab_size=src_vocab_size)
+            self.generator = Generator(d_model=d_model, vocab_size=src_vocab_size, temperature=temperature)
         else:
             self.tgt_embeddings = TokenEmbeddings(d_model=d_model, vocab_size=tgt_vocab_size)
-            self.generator = Generator(d_model=d_model, vocab_size=tgt_vocab_size)
+            self.generator = Generator(d_model=d_model, vocab_size=tgt_vocab_size, temperature=temperature)
 
         self.positional_encoding = SinusoidalPositionalEncoding(d_model=d_model, max_len=5000)
         for p in self.parameters():
@@ -46,14 +47,14 @@ class TransformersSeqToSeq(nn.Module):
         return self.encoder(x=src_embeddings, mask=src_mask)
 
     def decode(
-        self, tgt, memory, src_mask, tgt_mask
+        self, tgt, memory, src_mask, tgt_mask, temperature: Optional[float] = None
     ):
         # tgt = (batch_size, tgt_seq_len)
         # memory = (batch_size, src_seq_len, d_model)
         tgt_token_embeddings = self.tgt_embeddings(tgt)
         tgt_embeddings = self.positional_encoding(tgt_token_embeddings)
         decoder_output = self.decoder(x=tgt_embeddings, encoder_output=memory, src_mask=src_mask, tgt_mask=tgt_mask) # (batch_size, seq_len, d_model)
-        probs = self.generator(decoder_output)
+        probs = self.generator(decoder_output, temperature=temperature)
         return probs
 
     def forward(
@@ -117,7 +118,8 @@ class TransformersSeqToSeq(nn.Module):
         src_mask: Optional[torch.tensor] = None,
         max_tokens: Optional[int] = None,
         cls_token_id: int = 101, eos_token_id: int = 102,
-        beam_width: int = 4
+        beam_width: int = 4,
+        temperature: Optional[float] = None,
     ):
         device = next(self.parameters()).device
         self.eval()
@@ -140,7 +142,8 @@ class TransformersSeqToSeq(nn.Module):
                     tgt,
                     encoder_output,
                     src_mask=src_mask,
-                    tgt_mask=tgt_mask
+                    tgt_mask=tgt_mask,
+                    temperature=temperature
                     ) 
                 last_probs = out[:, -1, :].squeeze(0)
 

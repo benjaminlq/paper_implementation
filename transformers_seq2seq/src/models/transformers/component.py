@@ -99,9 +99,11 @@ class TransformerDecoder(nn.Module):
         return x
     
 class Generator(nn.Module):
-    def __init__(self, d_model, vocab_size):
+    def __init__(self, d_model: int, vocab_size: int, temperature: float = 1.0):
         super(Generator, self).__init__()
         self.proj = nn.Linear(d_model, vocab_size)
-
-    def forward(self, x):
-        return F.log_softmax(self.proj(x), dim=-1)
+        self.temperature = temperature
+        
+    def forward(self, x: torch.tensor, temperature: Optional[float] = None):
+        temperature = temperature or self.temperature
+        return F.log_softmax(self.proj(x / self.temperature), dim=-1)
